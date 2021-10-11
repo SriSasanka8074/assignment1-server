@@ -9,7 +9,7 @@ const upload = async (req, res) => {
     }
 
     let path =
-      __basedir + "/resources/static/assets/uploads/" + req.file.filename;
+      __basedir + "/assets/" + req.file.filename;
 
     readXlsxFile(path).then((rows) => {
       // skip header
