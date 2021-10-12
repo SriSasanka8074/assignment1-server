@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const sequelize = require("./models");
-const initRoutes = require("./routes/candidate_summay.route");
+const candidateSummaryRoutes = require("./routes/candidate_summay.route");
 
 global.__basedir = __dirname + "/..";
 app.use(
@@ -21,7 +21,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('assets'));
-app.use("/api/excel", initRoutes);
+app.use("/api/candidateSummary", candidateSummaryRoutes);
 
 sequelize.sync();
 

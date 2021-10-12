@@ -1,6 +1,8 @@
 const Candidate_Summary = require("../models/candidate_summary");
 
 const readXlsxFile = require("read-excel-file/node");
+const Sequelize = require("sequelize");
+const _ = require("lodash");
 
 const upload = async (req, res) => {
   try {
@@ -9,56 +11,120 @@ const upload = async (req, res) => {
     }
 
     let path =
-      __basedir + "/assets/" + req.file.filename;
-
-    readXlsxFile(path).then((rows) => {
+    __basedir + "/assignment1-server/assets/" + req.file.filename;
+    
+    readXlsxFile(path).then((rows, index) => {
       // skip header
       rows.shift();
-
+      
       let candidate_summary = [];
-
+      let ccsmry = [];
       rows.forEach((row) => {
-        let tutorial = {
+        let candidate_details = {
             name: row[0],
-            email_id: row[1],
-            phone_number: row[2],
+            email_id: row[7],
+            phone_number: row[8],
             candidates_data: {
               "ctc":  {
-                 "value" : 65,
-                 "ctcUnit": "Lakhs",
-                  "ctcCurrency" : "INR",
+                 "value" : row[5],
+                 "ctcUnit": row[6],
+                  "ctcCurrency" : row[4],
                },
-              "candidateExperience": 23,
+              "candidateExperience": row[3],
               "company ": {
-                "name": "BAJAJ FINANCIAL SECURITIES LIMITED"
+                "name": row[2]
               },
               "location" : {
-                "city": "Mumbai, Maharashtra"
+                "city": row[10]
               },
-              "linkedIn": "https://www.linkedin.com/profile" 
+              "linkedIn": row[9] 
             },
-            created_date: row[3],
-            created_by: row[4],
-            modified_date: row[5],
-            modified_by: row[6],
+            created_by: "SriSasanka",
+            modified_by: "SriSasanka",
         };
-        candidate_summary.push(tutorial);
-      });
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if(re.test(candidate_details.email_id)) {
+          let ctc = candidate_details.candidates_data.ctc;
+          if (ctc.ctcCurrency.includes("INR") || ctc.ctcCurrency.includes("USD") || ctc.ctcCurrency.includes("EUR")) {
+            if (ctc.ctcCurrency.includes("INR")) {
+              if (ctc.ctcUnit.toUpperCase().includes("LAKHS") || ctc.ctcUnit.toUpperCase().includes("CRORES")) {
+                candidate_summary.push(candidate_details);
+              } else {
+                const ccdetails = {...candidate_details};
+                ccdetails.reason = ccdetails.reason + "/ Invalid CTC Units";
+              }
+            } else {
+              if (ctc.ctcUnit.toUpperCase().includes("THOUSANDS") || ctc.ctcUnit.toUpperCase().includes("MILLIONS")) {
+                candidate_summary.push(candidate_details);
+              } else {
+                const ccdetails = {...candidate_details};
+                ccdetails.reason = ccdetails.reason + "/ Invalid CTC Units";
+              }
+            }
+          } else {
+            const ccdetails = {...candidate_details};
+            ccdetails.reason = ccdetails.reason + "/ Invalid CTC Currency"
+          }
+        } else {
+          const ccdetails = {...candidate_details};
+          ccdetails.reason = "Invalid email id.";
+          let ctc = ccdetails.candidates_data.ctc;
+          if (ctc.ctcCurrency.includes("INR") || ctc.ctcCurrency.includes("USD") || ctc.ctcCurrency.includes("EUR")) {
+            if (ctc.ctcCurrency.includes("INR")) {
+              if (!ctc.ctcUnit.toUpperCase().includes("LAKHS") || !ctc.ctcUnit.toUpperCase().includes("CRORES")) {
+                ccdetails.reason = ccdetails.reason + "/ Invalid CTC Units";
+              }
+            } else {
+              if (!ctc.ctcUnit.toUpperCase().includes("THOUSANDS") || !ctc.ctcUnit.toUpperCase().includes("MILLIONS")) {
+                ccdetails.reason = ccdetails.reason + "/ Invalid CTC Units";
+              }
+            }
+          } else {
+            ccdetails.reason = ccdetails.reason + "/ Invalid CTC Currency"
+          }
+          ccsmry.push(ccdetails);
+        }
 
-      Candidate_Summary.bulkCreate(candidate_summary)
+      });
+      Candidate_Summary.findAll().then(data => {
+        if (data) {
+          for (let i = 0; i< data.length-1; i++) {
+            if ((candidate_summary[i].name === data[i].name )|| (candidate_summary[i].email_id === data[i].email_id ) ||
+            (candidate_summary[i].phone_number === data[i].phone_number )) {
+              const ccdtls = {...candidate_summary[i]};
+              ccdtls.reason = "database record already exists for  name/ email id/ phone number ";
+              ccsmry.push(ccdtls);
+              if (i > -1) {
+                candidate_summary.splice(i, 1);
+              }
+            }
+          }
+        } else {
+          for (let i = 0; i< candidate_summary.length-1; i++) {
+            if ((candidate_summary[i].name === candidate_summary[i+1].name )|| (candidate_summary[i].email_id === candidate_summary[i+1].email_id ) ||
+            (candidate_summary[i].phone_number === candidate_summary[i+1].phone_number )) {
+              const ccdtls = {...candidate_summary[i]};
+              ccdtls.reason = "duplicate name/ email id/ phone number";
+              ccsmry.push(ccdtls);
+              if (i > -1) {
+                candidate_summary.splice(i, 1);
+              }
+            }
+          }
+        }
+      });
+      Candidate_Summary.bulkCreate(candidate_summary, {validate: true})
         .then(() => {
-          res.status(200).send({
+          res.status(200).json({
             message: "Uploaded the file successfully: " + req.file.originalname,
+            data: candidate_summary,
+            failedcases: ccsmry
           });
         })
-        .catch(Sequelize.ValidationError, function (err) {
-          // respond with validation errors
-          return res.status(422).send(err.errors);
-        })
         .catch((error) => {
-          res.status(500).send({
+          res.status(500).json({
             message: "Fail to import data into database!",
-            error: error.message,
+            error: error.errors,
           });
         });
     });

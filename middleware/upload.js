@@ -4,7 +4,8 @@ const path = require("path");
 const excelFilter = (req, file, cb) => {
   if (
     file.mimetype.includes("excel") ||
-    file.mimetype.includes("spreadsheetml")
+    file.mimetype.includes("spreadsheetml") ||
+    file.mimetype.includes("xlsx")
   ) {
     cb(null, true);
   } else {
@@ -14,7 +15,7 @@ const excelFilter = (req, file, cb) => {
 
 var storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "D:\\Projects\\Nodejs\\assignment1\\assets");
+    cb(null, "D:\\Projects\\assignment1-server\\assets");
   },
   filename: (req, file, cb) => {
     console.log(file.originalname);

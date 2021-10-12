@@ -12,14 +12,10 @@ const Candidate_Summary = sequelize.define("candidate_summary", {
     type: DataTypes.STRING(100),
     allowNull: false,
     validate: {
-      isAlpha: true,
+      is: /^[a-z 0-9]+$/i,
       notNull: true,
       notEmpty: true
-    },
-    unique: {
-      args: true,
-      msg: 'name already exists!'
-    },
+    }
   },
   email_id: {
     type: DataTypes.STRING(100),
@@ -28,11 +24,7 @@ const Candidate_Summary = sequelize.define("candidate_summary", {
       isEmail: true,
       notNull: true,
       notEmpty: true,
-    },
-    unique: {
-      args: true,
-      msg: 'Email address already exists!'
-    },
+    }
   },
   phone_number: {
     type: DataTypes.STRING(100),
@@ -40,11 +32,7 @@ const Candidate_Summary = sequelize.define("candidate_summary", {
     validate: {
       notNull: true,
       notEmpty: true
-    },
-    unique: {
-      args: true,
-      msg: 'Phone no. already exists!'
-    },
+    }
   },
   candidates_data: {
     type: DataTypes.JSONB,
@@ -53,6 +41,7 @@ const Candidate_Summary = sequelize.define("candidate_summary", {
   created_date: {
     type: DataTypes.DATE,
     allowNull: true,
+    defaultValue: Sequelize.NOW
   },
   created_by: {
     type: DataTypes.STRING(100),
@@ -65,6 +54,7 @@ const Candidate_Summary = sequelize.define("candidate_summary", {
   modified_date: {
     type: DataTypes.DATE,
     allowNull: true,
+    defaultValue: Sequelize.NOW
   },
   modified_by: {
     type: DataTypes.STRING(100),
