@@ -12,7 +12,6 @@ const upload = async (req, res) => {
 
     let path =
     __basedir + "/assignment1-server/assets/" + req.file.filename;
-    
     readXlsxFile(path).then((rows, index) => {
       // skip header
       rows.shift();
@@ -86,33 +85,17 @@ const upload = async (req, res) => {
         }
 
       });
-      Candidate_Summary.findAll().then(data => {
-        if (data) {
-          for (let i = 0; i< data.length-1; i++) {
-            if ((candidate_summary[i].name === data[i].name )|| (candidate_summary[i].email_id === data[i].email_id ) ||
-            (candidate_summary[i].phone_number === data[i].phone_number )) {
-              const ccdtls = {...candidate_summary[i]};
-              ccdtls.reason = "database record already exists for  name/ email id/ phone number ";
-              ccsmry.push(ccdtls);
-              if (i > -1) {
-                candidate_summary.splice(i, 1);
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i< candidate_summary.length-1; i++) {
-            if ((candidate_summary[i].name === candidate_summary[i+1].name )|| (candidate_summary[i].email_id === candidate_summary[i+1].email_id ) ||
-            (candidate_summary[i].phone_number === candidate_summary[i+1].phone_number )) {
-              const ccdtls = {...candidate_summary[i]};
-              ccdtls.reason = "duplicate name/ email id/ phone number";
-              ccsmry.push(ccdtls);
-              if (i > -1) {
-                candidate_summary.splice(i, 1);
-              }
-            }
+      for (let i = 0; i< candidate_summary.length-1; i++) {
+        if ((candidate_summary[i].name === candidate_summary[i+1].name )|| (candidate_summary[i].email_id === candidate_summary[i+1].email_id ) ||
+        (candidate_summary[i].phone_number === candidate_summary[i+1].phone_number )) {
+          const ccdtls = {...candidate_summary[i]};
+          ccdtls.reason = "duplicate name/ email id/ phone number";
+          ccsmry.push(ccdtls);
+          if (i > -1) {
+            candidate_summary.splice(i, 1);
           }
         }
-      });
+      }
       Candidate_Summary.bulkCreate(candidate_summary, {validate: true})
         .then(() => {
           res.status(200).json({
